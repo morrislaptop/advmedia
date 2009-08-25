@@ -8,14 +8,22 @@ class FilterController extends AppController {
 
 		App::import('Vendor', 'Media.Medium');
 		list($file, $relativeFile) = $this->_file();
+		$name = Medium::name($file);
+		$filter = Configure::read('Media.filter.' . strtolower($name));
+		$action = $this->params['action'];
+		if ( isset($filter[$action]) ) {
+			$filter = array($action => $filter[$action]); // only do this conversion
+		}
+		else {
+			// this isnt a stored favourite, lets see.
+			$filter = $this->_actionToFilter();
+		}
+
+		// These would usually be in the settings
 		$filterDirectory = MEDIA_FILTER;
 		$relativeDirectory = DS . rtrim(dirname($relativeFile), '.');
 		$createDirectory = true;
 		$overwrite = true;
-
-		$name = Medium::name($file);
-		$filter = Configure::read('Media.filter.' . strtolower($name));
-		$filter = array($this->params['action'] => $filter[$this->params['action']]); // only do this conversion
 
 		foreach ($filter as $version => $instructions) {
 			$directory = Folder::slashTerm($filterDirectory . $version . $relativeDirectory);
@@ -35,10 +43,22 @@ class FilterController extends AppController {
 				trigger_error($message, E_USER_WARNING);
 				continue;
 			}
-
+			$Medium->store($directory . basename($file), $overwrite);
 		}
 		return true;
+	}
 
+	function _actionToFilter() {
+		$action = $this->params['action'];
+		$filter = explode(',', $action);
+		$filters = array();
+		foreach ($filter as &$act) {
+			list($method, $params) = explode('-', $act);
+			$params = explode('.', $params);
+			$filters[$method] = $params;
+		}
+		$filters = array($action => $filters);
+		return $filters;
 	}
 
 	/**
