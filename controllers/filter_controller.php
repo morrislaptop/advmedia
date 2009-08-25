@@ -45,6 +45,10 @@ class FilterController extends AppController {
 			}
 			$Medium->store($directory . basename($file), $overwrite);
 		}
+
+		// redirect to the file again.
+		$redirect = '/' . str_replace(WWW_ROOT, '', $directory . basename($file));
+		$this->redirect($redirect);
 		return true;
 	}
 
