@@ -10,9 +10,13 @@ class FilterController extends AppController {
 		list($file, $relativeFile) = $this->_file();
 		$name = Medium::name($file);
 		$filter = Configure::read('Media.filter.' . strtolower($name));
+		$advfilter = Configure::read('Advmedia.filter.' . strtolower($name));
 		$action = $this->params['action'];
 		if ( isset($filter[$action]) ) {
 			$filter = array($action => $filter[$action]); // only do this conversion
+		}
+		else if ( isset($advfilter[$action]) ) {
+			$filter = array($action => $advfilter[$action]); // only do this conversion
 		}
 		else {
 			// this isnt a stored favourite, lets see.
@@ -37,17 +41,18 @@ class FilterController extends AppController {
 				continue;
 			}
 
+			#debug($file); debug($instructions); exit;
 			if (!$Medium = Medium::make($file, $instructions)) {
 				$message  = "MediaBehavior::make - Failed to make version `{$version}` ";
 				$message .= "of file `{$file}`. ";
 				trigger_error($message, E_USER_WARNING);
 				continue;
 			}
-			$Medium->store($directory . basename($file), $overwrite);
+			$final = $Medium->store($directory . basename($file), $overwrite);
 		}
 
 		// redirect to the file again.
-		$redirect = '/' . str_replace(WWW_ROOT, '', $directory . basename($file));
+		$redirect = '/' . str_replace(WWW_ROOT, '', $final);
 		$this->redirect($redirect);
 		return true;
 	}
