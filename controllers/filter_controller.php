@@ -28,7 +28,7 @@ class FilterController extends AppController {
 		$relativeDirectory = DS . rtrim(dirname($relativeFile), '.');
 		$createDirectory = true;
 		$overwrite = true;
-
+				
 		foreach ($filter as $version => $instructions) {
 			$directory = Folder::slashTerm($filterDirectory . $version . $relativeDirectory);
 			$Folder = new Folder($directory, $createDirectory);
@@ -40,8 +40,24 @@ class FilterController extends AppController {
 				trigger_error($message, E_USER_WARNING);
 				continue;
 			}
-
-			#debug($file); debug($instructions); exit;
+			
+			// Try and guess where a file would be if we are doing a conversion
+			if ( array_key_exists('convert', $instructions) ) {
+				$ext = MimeType::guessExtension($instructions['convert']);
+				if ( defined('PATHINFO_FILENAME') ) {
+					$filename = pathinfo($file,PATHINFO_FILENAME);
+				}
+				else {
+					$filename = substr($file, 0, strrpos($file,'.'));
+				}
+				$path = $directory . $filename . '.' . $ext;
+				if ( file_exists($path) ) {
+					$final = $path;
+					break;
+				}	
+			}
+			
+			// Make conversion
 			if (!$Medium = Medium::make($file, $instructions)) {
 				$message  = "MediaBehavior::make - Failed to make version `{$version}` ";
 				$message .= "of file `{$file}`. ";
@@ -75,6 +91,9 @@ class FilterController extends AppController {
 	 */
 	function _file() {
 		$path = implode('/', $this->params['pass']);
+		if ( !empty($this->params['url']['ext']) ) {
+			$path .= '.' . $this->params['url']['ext'];
+		}
 		return array(MEDIA . $path, $path);
 	}
 }
